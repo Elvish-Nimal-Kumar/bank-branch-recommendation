@@ -5,8 +5,17 @@ from sklearn.metrics.pairwise import haversine_distances
 import folium
 from streamlit_folium import st_folium
 
-# Load dataset
+
+# -----------------------------------
+# Load Dataset
+# -----------------------------------
+
 data = pd.read_csv("final_bank_recommendation_data.csv")
+
+
+# -----------------------------------
+# Page Title
+# -----------------------------------
 
 st.title("Bank Branch Recommendation System")
 
@@ -14,7 +23,11 @@ st.write(
     "Find suitable bank branches based on your location and preferences."
 )
 
+
+# -----------------------------------
 # User Inputs
+# -----------------------------------
+
 st.subheader("Customer Details")
 
 latitude = st.text_input(
@@ -37,17 +50,38 @@ max_distance = st.text_input(
     value="10"
 )
 
-find_banks = st.button("Find Recommended Banks")
+
+# -----------------------------------
+# Button State
+# -----------------------------------
+
+if "show_results" not in st.session_state:
+    st.session_state.show_results = False
 
 
-if find_banks:
+if st.button("Find Recommended Banks"):
+    st.session_state.show_results = True
 
+
+# -----------------------------------
+# Recommendation Process
+# -----------------------------------
+
+if st.session_state.show_results:
+
+    # Convert user inputs
     latitude = float(latitude)
     longitude = float(longitude)
     max_distance = float(max_distance)
 
-    # Calculate distance from customer to every branch
-    customer_location = np.radians([[latitude, longitude]])
+
+    # -----------------------------------
+    # Calculate Distance
+    # -----------------------------------
+
+    customer_location = np.radians(
+        [[latitude, longitude]]
+    )
 
     branch_locations = np.radians(
         data[["lattitude", "longitude"]].values
@@ -60,23 +94,37 @@ if find_banks:
 
     data["customer_distance_km"] = distances[0]
 
-    # Apply bank preference
+
+    # -----------------------------------
+    # Apply Bank Preference
+    # -----------------------------------
+
     if bank_preference == "Public":
+
         data = data[
             data["bank_group"] == "Public Sector Banks"
         ]
 
     elif bank_preference == "Private":
+
         data = data[
             data["bank_group"] == "Private Sector Banks"
         ]
 
-    # Apply maximum distance
+
+    # -----------------------------------
+    # Apply Maximum Distance
+    # -----------------------------------
+
     data = data[
         data["customer_distance_km"] <= max_distance
     ].copy()
 
-    # Calculate recommendation score
+
+    # -----------------------------------
+    # Calculate Recommendation Score
+    # -----------------------------------
+
     data["distance_score"] = (
         1 / (1 + data["customer_distance_km"])
     )
@@ -86,22 +134,43 @@ if find_banks:
         + data["distance_score"] * 30
     )
 
-    # Sort recommendations
+
+    # -----------------------------------
+    # Sort Recommendations
+    # -----------------------------------
+
     recommendations = data.sort_values(
         "recommendation_score",
         ascending=False
     )
 
-    # -----------------------------
+
+    # -----------------------------------
     # Recommendation Results
-    # -----------------------------
+    # -----------------------------------
 
     st.subheader("Recommended Bank Branches")
 
     st.write(
-        f"{len(recommendations)} branches found within "
-        f"{max_distance} km"
+        f"{len(recommendations)} branches found "
+        f"within {max_distance} km"
     )
+
+
+    # -----------------------------------
+    # No Results
+    # -----------------------------------
+
+    if len(recommendations) == 0:
+
+        st.warning(
+            "No bank branches found within the selected distance."
+        )
+
+
+    # -----------------------------------
+    # Recommendation Cards
+    # -----------------------------------
 
     for _, row in recommendations.head(10).iterrows():
 
@@ -158,60 +227,80 @@ if find_banks:
         )
 
 
-    # -----------------------------
+    # -----------------------------------
     # Interactive Map
-    # -----------------------------
+    # -----------------------------------
 
-    st.subheader("Branch Location Map")
+    if len(recommendations) > 0:
 
-    # Create map centered on customer
-    branch_map = folium.Map(
-        location=[latitude, longitude],
-        zoom_start=12
-    )
+        st.subheader("Branch Location Map")
 
-    # Customer marker
-    folium.Marker(
-        [latitude, longitude],
-        popup="Customer Location",
-        tooltip="Your Location",
-        icon=folium.Icon(
-            color="red",
-            icon="user"
+        # Create map centered on customer
+        branch_map = folium.Map(
+            location=[
+                latitude,
+                longitude
+            ],
+            zoom_start=12
         )
-    ).add_to(branch_map)
 
-    # Add recommended branches to map
-    for _, row in recommendations.head(10).iterrows():
 
-        popup_text = f"""
-        <b>{row['bank']}</b><br>
-        Branch: {row['branch']}<br>
-        Bank Type: {row['bank_group']}<br>
-        Distance: {row['customer_distance_km']:.2f} km<br>
-        Suitability: {row['suitability']}<br>
-        Suitability Score: {row['suitability_score']:.2f}
-        """
+        # -----------------------------------
+        # Customer Location
+        # -----------------------------------
 
         folium.Marker(
             [
-                row["lattitude"],
-                row["longitude"]
+                latitude,
+                longitude
             ],
-            popup=folium.Popup(
-                popup_text,
-                max_width=300
-            ),
-            tooltip=row["bank"],
+            popup="Customer Location",
+            tooltip="Your Location",
             icon=folium.Icon(
-                color="blue",
-                icon="bank"
+                color="red",
+                icon="user"
             )
         ).add_to(branch_map)
 
-    # Display map
-    st_folium(
-        branch_map,
-        width=900,
-        height=600
-    )
+
+        # -----------------------------------
+        # Recommended Branches
+        # -----------------------------------
+
+        for _, row in recommendations.head(10).iterrows():
+
+            popup_text = f"""
+            <b>{row['bank']}</b><br>
+            Branch: {row['branch']}<br>
+            Bank Type: {row['bank_group']}<br>
+            Distance: {row['customer_distance_km']:.2f} km<br>
+            Suitability: {row['suitability']}<br>
+            Suitability Score: {row['suitability_score']:.2f}
+            """
+
+            folium.Marker(
+                [
+                    row["lattitude"],
+                    row["longitude"]
+                ],
+                popup=folium.Popup(
+                    popup_text,
+                    max_width=300
+                ),
+                tooltip=row["bank"],
+                icon=folium.Icon(
+                    color="blue",
+                    icon="bank"
+                )
+            ).add_to(branch_map)
+
+
+        # -----------------------------------
+        # Display Map
+        # -----------------------------------
+
+        st_folium(
+            branch_map,
+            width=900,
+            height=600
+        )
