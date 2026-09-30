@@ -1,15 +1,18 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import haversine_distances
+import folium
+from streamlit_folium import st_folium
 
 # Load dataset
 data = pd.read_csv("final_bank_recommendation_data.csv")
 
 st.title("Bank Branch Recommendation System")
 
-st.write("Find suitable bank branches based on your location and preferences.")
+st.write(
+    "Find suitable bank branches based on your location and preferences."
+)
 
 # User Inputs
 st.subheader("Customer Details")
@@ -35,6 +38,7 @@ max_distance = st.text_input(
 )
 
 find_banks = st.button("Find Recommended Banks")
+
 
 if find_banks:
 
@@ -88,6 +92,10 @@ if find_banks:
         ascending=False
     )
 
+    # -----------------------------
+    # Recommendation Results
+    # -----------------------------
+
     st.subheader("Recommended Bank Branches")
 
     st.write(
@@ -100,13 +108,110 @@ if find_banks:
         st.markdown("---")
 
         st.subheader(row["bank"])
-        st.write(f"**Branch:** {row['branch']}")
-        st.write(f"**Bank Type:** {row['bank_group']}")
-        st.write(f"**Distance:** {row['customer_distance_km']:.2f} km")
-        st.write(f"**Suitability:** {row['suitability']}")
-        st.write(f"**Suitability Score:** {row['suitability_score']:.2f}")
-        st.write(f"**Nearest Bus:** {row['nearest_bus_km']:.2f} km")
-        st.write(f"**Nearest Railway:** {row['nearest_railway_km']:.2f} km")
-        st.write(f"**Nearest Metro:** {row['nearest_metro_km']:.2f} km")
-        st.write(f"**Nearby Branches:** {int(row['nearby_branch_count'])}")
-        st.write(f"**Nearest Major Road:** {row['nearest_major_road_km']:.2f} km")
+
+        st.write(
+            f"**Branch:** {row['branch']}"
+        )
+
+        st.write(
+            f"**Bank Type:** {row['bank_group']}"
+        )
+
+        st.write(
+            f"**Distance:** "
+            f"{row['customer_distance_km']:.2f} km"
+        )
+
+        st.write(
+            f"**Suitability:** "
+            f"{row['suitability']}"
+        )
+
+        st.write(
+            f"**Suitability Score:** "
+            f"{row['suitability_score']:.2f}"
+        )
+
+        st.write(
+            f"**Nearest Bus:** "
+            f"{row['nearest_bus_km']:.2f} km"
+        )
+
+        st.write(
+            f"**Nearest Railway:** "
+            f"{row['nearest_railway_km']:.2f} km"
+        )
+
+        st.write(
+            f"**Nearest Metro:** "
+            f"{row['nearest_metro_km']:.2f} km"
+        )
+
+        st.write(
+            f"**Nearby Branches:** "
+            f"{int(row['nearby_branch_count'])}"
+        )
+
+        st.write(
+            f"**Nearest Major Road:** "
+            f"{row['nearest_major_road_km']:.2f} km"
+        )
+
+
+    # -----------------------------
+    # Interactive Map
+    # -----------------------------
+
+    st.subheader("Branch Location Map")
+
+    # Create map centered on customer
+    branch_map = folium.Map(
+        location=[latitude, longitude],
+        zoom_start=12
+    )
+
+    # Customer marker
+    folium.Marker(
+        [latitude, longitude],
+        popup="Customer Location",
+        tooltip="Your Location",
+        icon=folium.Icon(
+            color="red",
+            icon="user"
+        )
+    ).add_to(branch_map)
+
+    # Add recommended branches to map
+    for _, row in recommendations.head(10).iterrows():
+
+        popup_text = f"""
+        <b>{row['bank']}</b><br>
+        Branch: {row['branch']}<br>
+        Bank Type: {row['bank_group']}<br>
+        Distance: {row['customer_distance_km']:.2f} km<br>
+        Suitability: {row['suitability']}<br>
+        Suitability Score: {row['suitability_score']:.2f}
+        """
+
+        folium.Marker(
+            [
+                row["lattitude"],
+                row["longitude"]
+            ],
+            popup=folium.Popup(
+                popup_text,
+                max_width=300
+            ),
+            tooltip=row["bank"],
+            icon=folium.Icon(
+                color="blue",
+                icon="bank"
+            )
+        ).add_to(branch_map)
+
+    # Display map
+    st_folium(
+        branch_map,
+        width=900,
+        height=600
+    )
