@@ -20,7 +20,7 @@ data = pd.read_csv("final_bank_recommendation_data.csv")
 # Page Title
 # -----------------------------------
 
-st.title("🏦Bank Branch Recommendation System")
+st.title("🏦 Bank Branch Recommendation System")
 
 st.write(
     "Find suitable bank branches based on your location and preferences."
