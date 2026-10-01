@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import requests
 
 from sklearn.metrics.pairwise import haversine_distances
 from streamlit_js_eval import get_geolocation
@@ -35,9 +34,6 @@ st.write(
 if "show_results" not in st.session_state:
     st.session_state.show_results = False
 
-if "location_method" not in st.session_state:
-    st.session_state.location_method = None
-
 if "current_latitude" not in st.session_state:
     st.session_state.current_latitude = None
 
@@ -46,60 +42,16 @@ if "current_longitude" not in st.session_state:
 
 
 # -----------------------------------
-# Address to Coordinates
-# -----------------------------------
-
-def get_coordinates(address, pincode):
-
-    search_query = f"{address}, {pincode}, Tamil Nadu, India"
-
-    url = "https://nominatim.openstreetmap.org/search"
-
-    params = {
-        "q": search_query,
-        "format": "json",
-        "limit": 1
-    }
-
-    headers = {
-        "User-Agent": "BankBranchRecommendationSystem/1.0"
-    }
-
-    response = requests.get(
-        url,
-        params=params,
-        headers=headers,
-        timeout=10
-    )
-
-    if response.status_code != 200:
-        return None, None
-
-    results = response.json()
-
-    if len(results) == 0:
-        return None, None
-
-    latitude = float(results[0]["lat"])
-    longitude = float(results[0]["lon"])
-
-    return latitude, longitude
-
-
-# -----------------------------------
 # Customer Location
 # -----------------------------------
 
 st.subheader("Customer Location")
 
-st.write("Choose how you want to provide your location.")
-
-
 location_option = st.radio(
-    "Location Method",
+    "Choose your location method",
     [
         "Use My Current Location",
-        "Enter Address"
+        "Enter Coordinates"
     ],
     horizontal=True
 )
@@ -112,8 +64,7 @@ location_option = st.radio(
 if location_option == "Use My Current Location":
 
     st.write(
-        "Click the button below and allow location access "
-        "when your browser asks for permission."
+        "Click below and allow location access when your browser asks for permission."
     )
 
     location = get_geolocation()
@@ -137,30 +88,26 @@ if location_option == "Use My Current Location":
                 location["coords"]["longitude"]
             )
 
-            st.session_state.location_method = "current"
-
             st.success(
                 "Your current location was detected."
             )
 
 
 # -----------------------------------
-# Address
+# Enter Coordinates
 # -----------------------------------
 
 else:
 
-    address = st.text_input(
-        "Address",
-        placeholder="Example: Tambaram, Chennai"
+    latitude_input = st.text_input(
+        "Latitude",
+        placeholder="Example: 13.0827"
     )
 
-    pincode = st.text_input(
-        "Pincode",
-        placeholder="Example: 600045"
+    longitude_input = st.text_input(
+        "Longitude",
+        placeholder="Example: 80.2707"
     )
-
-    st.session_state.location_method = "address"
 
 
 # -----------------------------------
@@ -169,12 +116,10 @@ else:
 
 st.subheader("Bank Preferences")
 
-
 bank_preference = st.selectbox(
     "Bank Preference",
     ["Any", "Public", "Private"]
 )
-
 
 max_distance = st.text_input(
     "Maximum Distance (km)",
@@ -202,7 +147,7 @@ if st.session_state.show_results:
 
 
     # -----------------------------------
-    # Current Location
+    # Use Current Location
     # -----------------------------------
 
     if location_option == "Use My Current Location":
@@ -220,58 +165,67 @@ if st.session_state.show_results:
 
 
     # -----------------------------------
-    # Address Location
+    # Use Entered Coordinates
     # -----------------------------------
 
     else:
 
-        if address.strip() == "":
+        if latitude_input.strip() == "":
 
             st.error(
-                "Please enter your address."
+                "Please enter your latitude."
             )
 
             st.stop()
 
 
-        if pincode.strip() == "":
+        if longitude_input.strip() == "":
 
             st.error(
-                "Please enter your pincode."
+                "Please enter your longitude."
             )
 
             st.stop()
 
 
-        if not pincode.isdigit() or len(pincode) != 6:
+        try:
+
+            latitude = float(latitude_input)
+            longitude = float(longitude_input)
+
+        except ValueError:
 
             st.error(
-                "Please enter a valid 6-digit pincode."
+                "Please enter valid latitude and longitude values."
             )
 
             st.stop()
 
 
-        with st.spinner("Finding your location..."):
+        # Validate latitude
 
-            latitude, longitude = get_coordinates(
-                address,
-                pincode
-            )
-
-
-        if latitude is None or longitude is None:
+        if latitude < -90 or latitude > 90:
 
             st.error(
-                "We couldn't find this address. "
-                "Please check the address and pincode."
+                "Latitude must be between -90 and 90."
+            )
+
+            st.stop()
+
+
+        # Validate longitude
+
+        if longitude < -180 or longitude > 180:
+
+            st.error(
+                "Longitude must be between -180 and 180."
             )
 
             st.stop()
 
 
     # -----------------------------------
-    # Validate Distance
+    # Validate Maximum Distance
     # -----------------------------------
 
     try:
@@ -287,31 +241,37 @@ if st.session_state.show_results:
         st.stop()
 
 
+    if max_distance <= 0:
+
+        st.error(
+            "Maximum distance must be greater than 0."
+        )
+
+        st.stop()
+
+
     # -----------------------------------
-    # Calculate Branch Distance
+    # Calculate Distance
     # -----------------------------------
 
     customer_location = np.radians(
         [[latitude, longitude]]
     )
 
-
     branch_locations = np.radians(
         data[["lattitude", "longitude"]].values
     )
-
 
     distances = haversine_distances(
         customer_location,
         branch_locations
     ) * 6371
 
-
     data["customer_distance_km"] = distances[0]
 
 
     # -----------------------------------
-    # Bank Preference
+    # Apply Bank Preference
     # -----------------------------------
 
     if bank_preference == "Public":
@@ -329,7 +289,7 @@ if st.session_state.show_results:
 
 
     # -----------------------------------
-    # Maximum Distance
+    # Apply Maximum Distance
     # -----------------------------------
 
     data = data[
@@ -344,7 +304,6 @@ if st.session_state.show_results:
     data["distance_score"] = (
         1 / (1 + data["customer_distance_km"])
     )
-
 
     data["recommendation_score"] = (
         data["suitability_score"] * 0.7
@@ -363,17 +322,20 @@ if st.session_state.show_results:
 
 
     # -----------------------------------
-    # Results
+    # Recommendation Results
     # -----------------------------------
 
     st.subheader("Recommended Bank Branches")
-
 
     st.write(
         f"{len(recommendations)} branches found "
         f"within {max_distance} km"
     )
 
+
+    # -----------------------------------
+    # No Results
+    # -----------------------------------
 
     if len(recommendations) == 0:
 
@@ -449,7 +411,6 @@ if st.session_state.show_results:
 
         st.subheader("Branch Location Map")
 
-
         branch_map = folium.Map(
             location=[
                 latitude,
@@ -459,7 +420,9 @@ if st.session_state.show_results:
         )
 
 
+        # -----------------------------------
         # Customer Marker
+        # -----------------------------------
 
         folium.Marker(
             [
@@ -475,7 +438,9 @@ if st.session_state.show_results:
         ).add_to(branch_map)
 
 
-        # Branch Markers
+        # -----------------------------------
+        # Recommended Branch Markers
+        # -----------------------------------
 
         for _, row in recommendations.head(10).iterrows():
 
@@ -487,7 +452,6 @@ if st.session_state.show_results:
             Suitability: {row['suitability']}<br>
             Suitability Score: {row['suitability_score']:.2f}
             """
-
 
             folium.Marker(
                 [
@@ -506,6 +470,10 @@ if st.session_state.show_results:
             ).add_to(branch_map)
 
 
+        # -----------------------------------
+        # Display Map
+        # -----------------------------------
+
         st_folium(
             branch_map,
             width=900,
@@ -518,6 +486,5 @@ if st.session_state.show_results:
 # -----------------------------------
 
 st.caption(
-    "Location search powered by OpenStreetMap Nominatim. "
     "Map data © OpenStreetMap contributors."
 )
