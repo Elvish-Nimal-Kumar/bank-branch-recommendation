@@ -9,27 +9,170 @@ import folium
 from streamlit_folium import st_folium
 
 
-# -----------------------------------
-# Load Dataset
-# -----------------------------------
+# =========================================================
+# PAGE CONFIGURATION
+# =========================================================
+
+st.set_page_config(
+    page_title="Bank Branch Recommendation",
+    page_icon="🏦",
+    layout="wide"
+)
+
+
+# =========================================================
+# CUSTOM CSS
+# =========================================================
+
+st.markdown("""
+<style>
+
+    /* Main page */
+    .main {
+        padding-top: 1rem;
+    }
+
+    /* Header */
+    .main-header {
+        padding: 10px 0 25px 0;
+    }
+
+    .main-title {
+        font-size: 34px;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+
+    .main-subtitle {
+        color: #6b7280;
+        font-size: 16px;
+    }
+
+    /* Section title */
+    .section-title {
+        font-size: 22px;
+        font-weight: 650;
+        margin-top: 20px;
+        margin-bottom: 12px;
+    }
+
+    /* Recommendation card */
+    .bank-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 22px;
+        margin: 12px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .bank-name {
+        font-size: 21px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .branch-name {
+        color: #6b7280;
+        font-size: 14px;
+        margin-bottom: 18px;
+    }
+
+    .bank-type {
+        display: inline-block;
+        background: #f3f4f6;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        margin-bottom: 18px;
+    }
+
+    /* Metrics */
+    .metric-box {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 8px;
+    }
+
+    .metric-label {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 3px;
+    }
+
+    .metric-value {
+        font-size: 16px;
+        font-weight: 650;
+    }
+
+    /* Suitability */
+    .suitability-high {
+        color: #15803d;
+        font-weight: 700;
+    }
+
+    .suitability-medium {
+        color: #b45309;
+        font-weight: 700;
+    }
+
+    .suitability-low {
+        color: #dc2626;
+        font-weight: 700;
+    }
+
+    /* Result count */
+    .result-count {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin: 15px 0 20px 0;
+        color: #374151;
+    }
+
+    /* Footer */
+    .footer {
+        text-align: center;
+        color: #9ca3af;
+        font-size: 12px;
+        padding: 25px 0 10px 0;
+    }
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# =========================================================
+# LOAD DATASET
+# =========================================================
 
 data = pd.read_csv("final_bank_recommendation_data.csv")
 
 
-# -----------------------------------
-# Page Title
-# -----------------------------------
+# =========================================================
+# HEADER
+# =========================================================
 
-st.title("Bank Branch Recommendation System")
+st.markdown("""
+<div class="main-header">
 
-st.write(
-    "Find suitable bank branches based on your location and preferences."
-)
+    <div class="main-title">
+        🏦 Bank Branch Recommendation System
+    </div>
+
+    <div class="main-subtitle">
+        Find suitable bank branches based on your location and preferences.
+    </div>
+
+</div>
+""", unsafe_allow_html=True)
 
 
-# -----------------------------------
-# Session State
-# -----------------------------------
+# =========================================================
+# SESSION STATE
+# =========================================================
 
 if "show_results" not in st.session_state:
     st.session_state.show_results = False
@@ -41,11 +184,14 @@ if "current_longitude" not in st.session_state:
     st.session_state.current_longitude = None
 
 
-# -----------------------------------
-# Customer Location
-# -----------------------------------
+# =========================================================
+# CUSTOMER LOCATION
+# =========================================================
 
-st.subheader("Customer Location")
+st.markdown(
+    '<div class="section-title">📍 Customer Location</div>',
+    unsafe_allow_html=True
+)
 
 location_option = st.radio(
     "Choose your location method",
@@ -57,14 +203,14 @@ location_option = st.radio(
 )
 
 
-# -----------------------------------
-# Current Location
-# -----------------------------------
+# =========================================================
+# CURRENT LOCATION
+# =========================================================
 
 if location_option == "Use My Current Location":
 
-    st.write(
-        "Click below and allow location access when your browser asks for permission."
+    st.info(
+        "Allow location access in your browser to automatically detect your current location."
     )
 
     location = get_geolocation()
@@ -93,52 +239,72 @@ if location_option == "Use My Current Location":
             )
 
 
-# -----------------------------------
-# Enter Coordinates
-# -----------------------------------
+# =========================================================
+# ENTER COORDINATES
+# =========================================================
 
 else:
 
-    latitude_input = st.text_input(
-        "Latitude",
-        placeholder="Example: 13.0827"
-    )
+    col1, col2 = st.columns(2)
 
-    longitude_input = st.text_input(
-        "Longitude",
-        placeholder="Example: 80.2707"
-    )
+    with col1:
+
+        latitude_input = st.text_input(
+            "Latitude",
+            placeholder="Example: 13.0827"
+        )
+
+    with col2:
+
+        longitude_input = st.text_input(
+            "Longitude",
+            placeholder="Example: 80.2707"
+        )
 
 
-# -----------------------------------
-# Bank Preferences
-# -----------------------------------
+# =========================================================
+# BANK PREFERENCES
+# =========================================================
 
-st.subheader("Bank Preferences")
-
-bank_preference = st.selectbox(
-    "Bank Preference",
-    ["Any", "Public", "Private"]
+st.markdown(
+    '<div class="section-title">🏦 Bank Preferences</div>',
+    unsafe_allow_html=True
 )
 
-max_distance = st.text_input(
-    "Maximum Distance (km)",
-    value="10"
-)
+col1, col2 = st.columns(2)
+
+with col1:
+
+    bank_preference = st.selectbox(
+        "Bank Preference",
+        ["Any", "Public", "Private"]
+    )
+
+with col2:
+
+    max_distance = st.text_input(
+        "Maximum Distance (km)",
+        value="10"
+    )
 
 
-# -----------------------------------
-# Find Banks Button
-# -----------------------------------
+# =========================================================
+# FIND BANKS BUTTON
+# =========================================================
 
-if st.button("Find Recommended Banks"):
+st.markdown("<br>", unsafe_allow_html=True)
+
+if st.button(
+    "🔎 Find Recommended Banks",
+    use_container_width=True
+):
 
     st.session_state.show_results = True
 
 
-# -----------------------------------
-# Recommendation Process
-# -----------------------------------
+# =========================================================
+# RECOMMENDATION PROCESS
+# =========================================================
 
 if st.session_state.show_results:
 
@@ -146,9 +312,9 @@ if st.session_state.show_results:
     longitude = None
 
 
-    # -----------------------------------
-    # Use Current Location
-    # -----------------------------------
+    # =====================================================
+    # USE CURRENT LOCATION
+    # =====================================================
 
     if location_option == "Use My Current Location":
 
@@ -164,9 +330,9 @@ if st.session_state.show_results:
             st.stop()
 
 
-    # -----------------------------------
-    # Use Entered Coordinates
-    # -----------------------------------
+    # =====================================================
+    # USE ENTERED COORDINATES
+    # =====================================================
 
     else:
 
@@ -224,9 +390,9 @@ if st.session_state.show_results:
             st.stop()
 
 
-    # -----------------------------------
-    # Validate Maximum Distance
-    # -----------------------------------
+    # =====================================================
+    # VALIDATE MAXIMUM DISTANCE
+    # =====================================================
 
     try:
 
@@ -250,9 +416,9 @@ if st.session_state.show_results:
         st.stop()
 
 
-    # -----------------------------------
-    # Calculate Distance
-    # -----------------------------------
+    # =====================================================
+    # CALCULATE DISTANCE
+    # =====================================================
 
     customer_location = np.radians(
         [[latitude, longitude]]
@@ -270,9 +436,9 @@ if st.session_state.show_results:
     data["customer_distance_km"] = distances[0]
 
 
-    # -----------------------------------
-    # Apply Bank Preference
-    # -----------------------------------
+    # =====================================================
+    # APPLY BANK PREFERENCE
+    # =====================================================
 
     if bank_preference == "Public":
 
@@ -288,18 +454,18 @@ if st.session_state.show_results:
         ]
 
 
-    # -----------------------------------
-    # Apply Maximum Distance
-    # -----------------------------------
+    # =====================================================
+    # APPLY MAXIMUM DISTANCE
+    # =====================================================
 
     data = data[
         data["customer_distance_km"] <= max_distance
     ].copy()
 
 
-    # -----------------------------------
-    # Recommendation Score
-    # -----------------------------------
+    # =====================================================
+    # RECOMMENDATION SCORE
+    # =====================================================
 
     data["distance_score"] = (
         1 / (1 + data["customer_distance_km"])
@@ -311,9 +477,9 @@ if st.session_state.show_results:
     )
 
 
-    # -----------------------------------
-    # Sort Recommendations
-    # -----------------------------------
+    # =====================================================
+    # SORT RECOMMENDATIONS
+    # =====================================================
 
     recommendations = data.sort_values(
         "recommendation_score",
@@ -321,21 +487,29 @@ if st.session_state.show_results:
     )
 
 
-    # -----------------------------------
-    # Recommendation Results
-    # -----------------------------------
+    # =====================================================
+    # RESULTS HEADER
+    # =====================================================
 
-    st.subheader("Recommended Bank Branches")
+    st.markdown(
+        '<div class="section-title">✨ Recommended Bank Branches</div>',
+        unsafe_allow_html=True
+    )
 
-    st.write(
-        f"{len(recommendations)} branches found "
-        f"within {max_distance} km"
+    st.markdown(
+        f"""
+        <div class="result-count">
+            <b>{len(recommendations)}</b> branches found
+            within <b>{max_distance} km</b>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 
-    # -----------------------------------
-    # No Results
-    # -----------------------------------
+    # =====================================================
+    # NO RESULTS
+    # =====================================================
 
     if len(recommendations) == 0:
 
@@ -344,72 +518,195 @@ if st.session_state.show_results:
         )
 
 
-    # -----------------------------------
-    # Recommendation Cards
-    # -----------------------------------
+    # =====================================================
+    # RECOMMENDATION CARDS
+    # =====================================================
 
-    for _, row in recommendations.head(10).iterrows():
+    for index, (_, row) in enumerate(
+        recommendations.head(10).iterrows(),
+        start=1
+    ):
 
-        st.markdown("---")
-
-        st.subheader(row["bank"])
-
-        st.write(
-            f"**Branch:** {row['branch']}"
+        st.markdown(
+            '<div class="bank-card">',
+            unsafe_allow_html=True
         )
 
-        st.write(
-            f"**Bank Type:** {row['bank_group']}"
-        )
+        # Bank header
 
-        st.write(
-            f"**Distance:** "
-            f"{row['customer_distance_km']:.2f} km"
-        )
+        st.markdown(
+            f"""
+            <div class="bank-name">
+                {index}. {row["bank"]}
+            </div>
 
-        st.write(
-            f"**Suitability:** "
-            f"{row['suitability']}"
-        )
+            <div class="branch-name">
+                {row["branch"]}
+            </div>
 
-        st.write(
-            f"**Suitability Score:** "
-            f"{row['suitability_score']:.2f}"
-        )
-
-        st.write(
-            f"**Nearest Bus Stop:** "
-            f"{row['nearest_bus_km']:.2f} km"
-        )
-
-        st.write(
-            f"**Nearest Railway:** "
-            f"{row['nearest_railway_km']:.2f} km"
-        )
-
-        st.write(
-            f"**Nearest Metro:** "
-            f"{row['nearest_metro_km']:.2f} km"
-        )
-
-        st.write(
-            f"**Nearby Branches:** "
-            f"{int(row['nearby_branch_count'])}"
-        )
-
-        st.write(
-            f"**Nearest Major Road:** "
-            f"{row['nearest_major_road_km']:.2f} km"
+            <div class="bank-type">
+                {row["bank_group"]}
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
 
-    # -----------------------------------
-    # Interactive Map
-    # -----------------------------------
+        # Main metrics
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+
+            st.markdown(
+                f"""
+                <div class="metric-box">
+                    <div class="metric-label">Distance</div>
+                    <div class="metric-value">
+                        {row["customer_distance_km"]:.2f} km
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with col2:
+
+            suitability = row["suitability"]
+
+            if suitability == "High":
+                suitability_class = "suitability-high"
+
+            elif suitability == "Medium":
+                suitability_class = "suitability-medium"
+
+            else:
+                suitability_class = "suitability-low"
+
+            st.markdown(
+                f"""
+                <div class="metric-box">
+                    <div class="metric-label">Suitability</div>
+                    <div class="metric-value {suitability_class}">
+                        {suitability}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with col3:
+
+            st.markdown(
+                f"""
+                <div class="metric-box">
+                    <div class="metric-label">Suitability Score</div>
+                    <div class="metric-value">
+                        {row["suitability_score"]:.2f}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+        # Accessibility metrics
+
+        st.markdown(
+            "<br>",
+            unsafe_allow_html=True
+        )
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+
+            st.markdown(
+                f"""
+                <div class="metric-box">
+                    <div class="metric-label">🚌 Nearest Bus Stop</div>
+                    <div class="metric-value">
+                        {row["nearest_bus_km"]:.2f} km
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with col2:
+
+            st.markdown(
+                f"""
+                <div class="metric-box">
+                    <div class="metric-label">🚆 Nearest Railway</div>
+                    <div class="metric-value">
+                        {row["nearest_railway_km"]:.2f} km
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with col3:
+
+            st.markdown(
+                f"""
+                <div class="metric-box">
+                    <div class="metric-label">🚇 Nearest Metro</div>
+                    <div class="metric-value">
+                        {row["nearest_metro_km"]:.2f} km
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with col4:
+
+            st.markdown(
+                f"""
+                <div class="metric-box">
+                    <div class="metric-label">🏦 Nearby Branches</div>
+                    <div class="metric-value">
+                        {int(row["nearby_branch_count"])}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+        # Road accessibility
+
+        st.markdown(
+            f"""
+            <div class="metric-box">
+                <div class="metric-label">🛣️ Nearest Major Road</div>
+                <div class="metric-value">
+                    {row["nearest_major_road_km"]:.2f} km
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+
+    # =====================================================
+    # BRANCH LOCATION MAP
+    # =====================================================
 
     if len(recommendations) > 0:
 
-        st.subheader("Branch Location Map")
+        st.markdown(
+            '<div class="section-title">🗺️ Branch Location Map</div>',
+            unsafe_allow_html=True
+        )
 
         branch_map = folium.Map(
             location=[
@@ -420,9 +717,9 @@ if st.session_state.show_results:
         )
 
 
-        # -----------------------------------
-        # Customer Marker
-        # -----------------------------------
+        # =================================================
+        # CUSTOMER MARKER
+        # =================================================
 
         folium.Marker(
             [
@@ -438,9 +735,9 @@ if st.session_state.show_results:
         ).add_to(branch_map)
 
 
-        # -----------------------------------
-        # Recommended Branch Markers
-        # -----------------------------------
+        # =================================================
+        # RECOMMENDED BRANCH MARKERS
+        # =================================================
 
         for _, row in recommendations.head(10).iterrows():
 
@@ -471,9 +768,9 @@ if st.session_state.show_results:
             ).add_to(branch_map)
 
 
-        # -----------------------------------
-        # Display Map
-        # -----------------------------------
+        # =================================================
+        # DISPLAY MAP
+        # =================================================
 
         st_folium(
             branch_map,
@@ -482,10 +779,15 @@ if st.session_state.show_results:
         )
 
 
-# -----------------------------------
-# Attribution
-# -----------------------------------
+# =========================================================
+# FOOTER
+# =========================================================
 
-st.caption(
-    "Map data © OpenStreetMap contributors."
+st.markdown(
+    """
+    <div class="footer">
+        Map data © OpenStreetMap contributors.
+    </div>
+    """,
+    unsafe_allow_html=True
 )
