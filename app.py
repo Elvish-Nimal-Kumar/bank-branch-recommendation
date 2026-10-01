@@ -378,7 +378,7 @@ if st.session_state.show_results:
         )
 
         st.write(
-            f"**Nearest Bus:** "
+            f"**Nearest Bus Stop:** "
             f"{row['nearest_bus_km']:.2f} km"
         )
 
@@ -450,7 +450,8 @@ if st.session_state.show_results:
             Bank Type: {row['bank_group']}<br>
             Distance: {row['customer_distance_km']:.2f} km<br>
             Suitability: {row['suitability']}<br>
-            Suitability Score: {row['suitability_score']:.2f}
+            Suitability Score: {row['suitability_score']:.2f}<br>
+            Nearest Major Road: {row['nearest_major_road_km']:.2f} km
             """
 
             folium.Marker(
